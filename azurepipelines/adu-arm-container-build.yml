@@ -114,11 +114,11 @@ jobs:
           sudo docker save arm32container -o /usr/bin/arm32container.tar
 
   - job: BuildArm64Container
-      displayName: "Build ARM64 Container"
-      timeoutInMinutes: 360
-      cancelTimeoutInMinutes: 360
-      pool: ADUC-Linux
-      steps:
+    displayName: "Build ARM64 Container"
+    timeoutInMinutes: 360
+    cancelTimeoutInMinutes: 360
+    pool: ADUC-Linux
+    steps:
         # QEMU must be registered before this pipeline runs, but restarting the build VM will deregister QEMU,
         # So, we just need to run QEMU before kicking off this pipeline. 
         # This is only an issue on the arm64 flavor since we aren't able to register QEMU as part of the docker
@@ -182,5 +182,5 @@ jobs:
           displayName: 'Remove git credentials for DO in container'
           condition: succeededOrFailed()
 
-          - bash: |
+        - bash: |
                 sudo docker save arm64container -o $(Build.SourcesDirectory):/iot-hub-device-update/arm64container.tar
