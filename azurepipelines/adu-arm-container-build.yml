@@ -46,7 +46,6 @@ pr:
 jobs:
   - job: BuildArm32Container
     displayName: "Build ARM32 Container"
-    # Task 27290511: Debian arm pipeline - improve build time
     timeoutInMinutes: 360
     cancelTimeoutInMinutes: 360
     pool: ADUC-Linux
@@ -112,4 +111,76 @@ jobs:
         condition: succeededOrFailed()
 
       - bash: |
-          
+          sudo docker save arm32container -o /usr/bin/arm32container.tar
+
+  - job: BuildArm64Container
+      displayName: "Build ARM64 Container"
+      timeoutInMinutes: 360
+      cancelTimeoutInMinutes: 360
+      pool: ADUC-Linux
+      steps:
+        # QEMU must be registered before this pipeline runs, but restarting the build VM will deregister QEMU,
+        # So, we just need to run QEMU before kicking off this pipeline. 
+        # This is only an issue on the arm64 flavor since we aren't able to register QEMU as part of the docker
+        # image for this architecture, which is not the case for arm32.
+
+        - bash: |
+                echo "Running whoami"
+                whoami
+                echo "Register QEMU"
+                sudo docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+                echo "Listing running containers"
+                sudo docker ps -a
+                echo "Listing current images"
+                sudo docker images
+          displayName: 'Prebuild'
+          condition: always()
+
+        - bash: |
+                sudo docker build --pull --rm -f "docker/arm64/Dockerfile" -t adu-arm64-img:latest "docker/arm64"
+          displayName: 'Build docker image'
+
+        - bash: |
+                sudo docker run -d -t --rm -v $(Build.SourcesDirectory):/iot-hub-device-update -v ~/.gitconfig:/etc/.gitconfig --name arm64container adu-arm64-img:latest bash 
+          displayName: 'Run docker container'
+
+        - bash: |
+                sudo docker exec -w /iot-hub-device-update arm64container scripts/install-deps.sh --install-aduc-deps --install-packages
+          displayName: 'Install aduc dependencies in container'
+
+          # do_access_token is defined as a secret variable.
+          # This token gives our pipeline access to DO's private github repos.
+          # When DO code is public, we will no longer need to use this access token.
+          # Here we use git configuration to 'hijack' the regular github repo URLs
+          # and replace them with the authenticated URLs.
+          # See https://git-scm.com/docs/git-config#Documentation/git-config.txt-urlltbasegtinsteadOf
+          # Before setting the various url insteadOf sections, we make sure the config is in a clean state.
+          # Any corrupted/invalid entries will prevent the clone from succeeding.
+          # The various git config commands will also fail to remove invalid entries,
+          # so we use sed instead.
+        - bash: |
+                sudo docker exec arm64container cp /etc/.gitconfig /iot-hub-device-update/.gitconfig
+                sudo docker exec arm64container sed -i -e '/^.*url.*https.*@github.com\/Microsoft\/.*$/d' -e '/^.*insteadOf.*https.*github.com\/Microsoft\/.*$/d' /iot-hub-device-update/.gitconfig
+                sudo docker exec arm64container cp -f /iot-hub-device-update/.gitconfig /etc/.gitconfig
+                sudo docker exec arm64container git config --global url."https://api:$DO_ACCESS_TOKEN@github.com/Microsoft/do-client.git".insteadOf "https://github.com/Microsoft/do-client.git"
+                sudo docker exec arm64container git config --global url."https://api:$DO_ACCESS_TOKEN@github.com/Microsoft/do-client".insteadOf "https://github.com/Microsoft/do-client"
+          displayName: 'Configure git credentials for DO inside container'
+          env: 
+            DO_ACCESS_TOKEN: $(do_access_token)
+
+        - bash: |
+                sudo docker exec -w /iot-hub-device-update arm64container scripts/install-deps.sh --install-do --install-do-deps ubuntu-18.04
+          displayName: 'Install DO SDK from source in container'
+
+          # Cleanup the entries we added to clone private repos.
+          # The various git config commands will also fail to remove invalid entries,
+          # so we use sed instead.
+        - bash: |
+                sudo docker exec arm64container cp /etc/.gitconfig /iot-hub-device-update/.gitconfig
+                sudo docker exec arm64container sed -i -e '/^.*url.*https.*github.com\/Microsoft\/.*$/d' -e '/^.*insteadOf.*https.*github.com\/Microsoft\/.*$/d' /iot-hub-device-update/.gitconfig
+                sudo docker exec arm64container cp -f /iot-hub-device-update/.gitconfig /etc/.gitconfig
+          displayName: 'Remove git credentials for DO in container'
+          condition: succeededOrFailed()
+
+          - bash: |
+                sudo docker save arm64container -o $(Build.SourcesDirectory):/iot-hub-device-update/arm64container.tar
