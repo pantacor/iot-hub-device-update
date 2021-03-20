@@ -68,7 +68,7 @@ jobs:
     steps:
       - bash: |
           sudo docker load -i /usr/bin/arm32container.tar
-          sudo docker run arm32container
+          sudo docker run --name arm32container arm32container:latest
 
       - bash: |
           sudo docker exec -w /iot-hub-device-update arm32container scripts/build.sh --clean --build-unit-tests --platform-layer simulator --content-handlers microsoft/swupdate --log-lib zlog --static-analysis clang-tidy,cppcheck --out-dir out-arm32
