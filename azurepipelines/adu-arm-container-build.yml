@@ -65,11 +65,11 @@ jobs:
 
       - bash: |
           cp /usr/bin/qemu-arm-static $(Build.SourcesDirectory)/docker/arm32/qemu-arm-static
-          sudo docker build --pull --rm -f "docker/arm32/Dockerfile" -t arm32image:latest "docker/arm32"
+          sudo docker build --pull --rm -f "docker/arm32/Dockerfile" -t arm32container:latest "docker/arm32"
         displayName: "Build docker image"
 
       - bash: |
-          sudo docker run -d -t --rm -v $(Build.SourcesDirectory):/iot-hub-device-update -v ~/.gitconfig:/etc/.gitconfig --name arm32container arm32image:latest bash
+          sudo docker run -d -t --rm -v $(Build.SourcesDirectory):/iot-hub-device-update -v ~/.gitconfig:/etc/.gitconfig --name arm32container arm32container:latest bash
         displayName: "Run docker container"
 
       # - bash: |
@@ -111,7 +111,7 @@ jobs:
       #   condition: succeededOrFailed()
 
       - bash: |
-          sudo docker save arm32image:latest -o /usr/bin/arm32container.tar
+          sudo docker save arm32container:latest -o /usr/bin/arm32container.tar
         displayName: "Save container"
 
       - bash: |
