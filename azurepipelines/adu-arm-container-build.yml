@@ -112,7 +112,12 @@ jobs:
 
       - bash: |
           sudo docker save arm32image:latest -o /usr/bin/arm32container.tar
-          displayName: "Save container"
+        displayName: "Save container"
+
+      - bash: |
+          sudo docker stop arm32container
+        displayName: "Postbuild"
+        condition: always()
 
   - job: BuildArm64Container
     displayName: "Build ARM64 Container"
@@ -186,3 +191,11 @@ jobs:
         - bash: |
                 sudo mkdir $(Build.SourcesDirectory):/iot-hub-device-update
                 sudo docker save arm64container -o $(Build.SourcesDirectory):/iot-hub-device-update/arm64container.tar
+          displayName: "Save arm64 container"
+
+          # Stop the running container at the end of the build job
+          # Remove output directory to prevent persisting across build jobs
+        - bash: |
+            sudo docker stop arm64container
+          displayName: "Postbuild"
+          condition: always()
