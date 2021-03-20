@@ -189,8 +189,7 @@ jobs:
         #   condition: succeededOrFailed()
 
         - bash: |
-                sudo mkdir $(Build.SourcesDirectory):/iot-hub-device-update
-                sudo docker save arm64container -o $(Build.SourcesDirectory):/iot-hub-device-update/arm64container.tar
+                sudo docker save adu-arm64-img:latest -o /usr/bin/arm64container.tar
           displayName: "Save arm64 container"
 
           # Stop the running container at the end of the build job

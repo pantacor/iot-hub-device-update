@@ -65,8 +65,8 @@ jobs:
   pool: ADUC-Linux
   steps:
   - bash: |
-          sudo docker load -i $(Build.SourcesDirectory):/iot-hub-device-update/arm64container.tar
-          sudo docker run arm64container
+          sudo docker load -i /usr/bin/arm64container.tar
+          sudo docker run -t -d --name arm64container adu-arm64-img:latest 
   - bash: |
           sudo docker exec -w /iot-hub-device-update arm64container scripts/build.sh --clean --build-unit-tests --platform-layer simulator --content-handlers microsoft/swupdate --log-lib zlog --static-analysis clang-tidy,cppcheck --out-dir out-arm64
     displayName: 'Build Client and Unit Tests: simulator-swupdate-Debug'
