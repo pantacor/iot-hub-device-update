@@ -166,7 +166,7 @@ jobs:
     # Remove output directory to prevent persisting across build jobs
   - bash: |
         sudo docker stop arm64container
-        sudo docker rm arm32container
+        sudo docker rm arm64container
         sudo rm -rf out-arm64
     displayName: 'Postbuild'
     condition: always()
