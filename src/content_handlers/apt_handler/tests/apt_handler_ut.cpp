@@ -306,3 +306,37 @@ TEST_CASE("APT_Handler_RemoveIsInstalledTwice_test")
     removed = AptHandlerImpl::RemoveInstalledCriteria(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
     CHECK(removed);
 }
+
+TEST_CASE("APT_Handler_RemoveAllDuplicateInstalledCriteria")
+{
+    AptHandlerImpl::RemoveAllInstalledCriteria();
+
+    const char* installedCriteria_foo = "contoso-iot-edge-6.1.0.19";
+
+    ADUC_Result isInstalled = AptHandlerImpl::GetIsInstalled(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+    CHECK(isInstalled.ResultCode != ADUC_IsInstalledResult_Installed);
+
+    // Persist foo
+    {
+        bool persisted = AptHandlerImpl::PersistInstalledCriteria(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+        CHECK(persisted);
+    }
+
+    isInstalled = AptHandlerImpl::GetIsInstalled(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+    CHECK(isInstalled.ResultCode == ADUC_IsInstalledResult_Installed);
+
+    // Persist duplicate again
+    {
+        bool persisted = AptHandlerImpl::PersistInstalledCriteria(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+        CHECK(persisted);
+    }
+
+    // Single call should remove foo, including duplicates
+    {
+        bool removed = AptHandlerImpl::RemoveInstalledCriteria(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+        CHECK(removed);
+
+        ADUC_Result isInstalled = AptHandlerImpl::GetIsInstalled(ADUC_INSTALLEDCRITERIA_FILE_PATH, installedCriteria_foo);
+        CHECK(isInstalled.ResultCode != ADUC_IsInstalledResult_Installed);
+    }
+}
