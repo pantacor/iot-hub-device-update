@@ -25,7 +25,7 @@ namespace PVControl
 /**
  * @brief Bash script to install the image file, apply the install, or revert the apply.
  */
-static const char* PVControlCommand = "/usr/lib/adu/pvcontrol";
+static const char* PVControlCommand = "CURL_ARGS=\"-s --max-time 240\" /usr/lib/adu/pvcontrol";
 static const char* RmCommand = "/bin/rm";
 
 /**
