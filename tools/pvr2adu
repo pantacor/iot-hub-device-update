@@ -3,85 +3,151 @@
 set -e
 
 usage() {
-	echo "Usage: pvr2adu [-h] -p <PROVIDER> -n <NAME> -m <MANUFACTURER> -d <MODEL> -v <VERSION> -o <OUTPUT>"
-	echo "Creates ADU compatible manifest and tarball from current directory"
-	echo "       options:"
-	echo "              -h      show help"
-	echo "              -p      provider"
-	echo "              -n      name"
-	echo "              -m      manufacturer"
-	echo "              -v      version"
-	echo "              -o      output"
+	echo "Usage: pvr2adu [options] <download|add-agent|export> [arguments]"
+	echo "Convert pvr checkout and images into ADU format"
+	echo "options:"
+	echo "       -h this help"
+	echo "       -v verbose"
+}
+
+usage_download() {
+	echo "Usage: pvr2adu [options] download <arm-bpi-r64|arm-rpi64|x64-uefi> <connection-string> <manufacturer> <model>"
+	echo "Download image that will connect to ADU with the provided configuration"
+}
+
+usage_add_agent() {
+	echo "Usage: pvr2adu [options] add-agent <connection-string> <manufacturer> <model>"
+	echo "Install ADU agent in the current pvr checkout that will connect to ADU with the provided configuration"
+}
+
+usage_export() {
+	echo "Usage: pvr2adu [options] export <provider> <name> <version> <manufacturer> <model> <output>"
+	echo "Export the current pvr checkout into ADU compatible format"
 }
 
 parse_args() {
-	# parse options
 	while [ $# -gt 0 ]; do
 		key="$1"
 		case "$key" in
 			-h)
-				usage; exit 0
-				;;
-			-p)
-				shift
-				PROVIDER="$1"
-				;;
-			-n)
-				shift
-				NAME="$1"
-				;;
-			-m)
-				shift
-				MANUFACTURER="$1"
-				;;
-			-d)
-				shift
-				MODEL="$1"
+				usage
+				exit 0
 				;;
 			-v)
-				shift
-				VERSION="$1"
-				;;
-			-o)
-				shift
-				OUTPUT="$1"
+				verbose="true"
 				;;
 			*)
+
 				break
 		esac
 		shift
 	done
+
+	case "$1" in
+		download)
+			cmd='download'
+			target="$2"
+			connectionstring="$3"
+			manufacturer="$4"
+			model="$5"
+			;;
+		add-agent)
+			cmd='add-agent'
+			connectionstring="$2"
+			manufacturer="$3"
+			model="$4"
+			;;
+		export)
+			cmd='export'
+			provider="$2"
+			name="$3"
+			version="$4"
+			manufacturer="$5"
+			model="$6"
+			output="$7"
+			;;
+		*)
+			usage; exit 1
+			;;
+	esac
 }
 
-check_args() {
-	if [ -z "$PROVIDER" ]; then usage; exit 1; fi
-	if [ -z "$NAME" ]; then usage; exit 1; fi
-	if [ -z "$MANUFACTURER" ]; then usage; exit 1; fi
-	if [ -z "$MODEL" ]; then usage; exit 1; fi
-	if [ -z "$VERSION" ]; then usage; exit 1; fi
-	if [ -z "$OUTPUT" ]; then usage; exit 1; fi
+check_args_download() {
+	if [ -z "$target" ]; then usage_download; exit 1; fi
+	if [ -z "$connectionstring" ]; then usage_download; exit 1; fi
+	if [ -z "$manufacturer" ]; then usage_download; exit 1; fi
+	if [ -z "$model" ]; then usage_download; exit 1; fi
 }
 
+check_args_add_agent() {
+	if [ -z "$connectionstring" ]; then usage_add_agent; exit 1; fi
+	if [ -z "$manufacturer" ]; then usage_add_agent; exit 1; fi
+	if [ -z "$model" ]; then usage_add_agent; exit 1; fi
+}
+
+check_args_export() {
+	if [ -z "$provider" ]; then usage_export; exit 1; fi
+	if [ -z "$name" ]; then usage_export; exit 1; fi
+	if [ -z "$version" ]; then usage_export; exit 1; fi
+	if [ -z "$manufacturer" ]; then usage_export; exit 1; fi
+	if [ -z "$model" ]; then usage_export; exit 1; fi
+}
+
+download_image() {
+	tmp=`mktemp`
+	echo "connection_string=$connectionstring" >> $tmp
+	echo "aduc_manufacturer=$manufacturer" >> $tmp
+	echo "aduc_model=$model" >> $tmp
+	if [ -n "$verbose" ]; then cat $tmp; fi
+	config=`cat $tmp | base64 -w 0`
+	curl "https://images.apps.pantahub.com/get?device=$target&config=$config==&channel=stable&project=adu-ci&bucket=pantavisor-ci" --remote-header-name --remote-name
+}
+
+add_agent() {
+	if [ ! -e _hostconfig/pvr/docker.json ]; then
+		echo "no _hostconfig found in pvr checkout"
+		exit 1
+	else
+		grep -q amd64 _hostconfig/pvr/docker.json && target="amd64"
+		grep -q arm _hostconfig/pvr/docker.json && target="arm32v7"
+		grep -q arm64 _hostconfig/pvr/docker.json && target="arm64v8"
+	fi
+
+	if [ -z "$target" ]; then
+		echo "unknown target"
+		exit 1
+	fi
+	if [ -n "$verbose" ]; then echo "installing adu agent for $target"; fi
+
+	pvr app add --from registry.gitlab.com/pantacor/pv-platforms/adu-agent:$target azure-client
+	mkdir -p _config/azure-client/etc/adu
+	echo "connection_string=$connectionstring" > _config/azure-client/etc/adu/adu-conf.txt
+	echo "aduc_manufacturer=$manufacturer" >> _config/azure-client/etc/adu/adu-conf.txt
+	echo "aduc_model=$model" >> _config/azure-client/etc/adu/adu-conf.txt
+	pvr add .
+	pvr commit
+} 
 create_tarball() {
-	mkdir -p "$OUTPUT"
-	pvr export "$OUTPUT/pvr-export.tgz"
-	SHA=`sha256sum "$OUTPUT/pvr-export.tgz" | cut -d " " -f 1`
-	SHA64=`echo $SHA | xxd -r -p | base64`
-	SIZE=`stat -c%s "$OUTPUT/pvr-export.tgz"`
-	DATE=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+	mkdir -p "$output"
+	pvr export "$output/pvr-export.tgz"
+	sha=`sha256sum "$output/pvr-export.tgz" | cut -d " " -f 1`
+	sha64=`echo $sha | xxd -r -p | base64`
+	size=`stat -c%s "$output/pvr-export.tgz"`
+	date=`date -u +"%Y-%m-%dT%H:%M:%SZ"`
+	ls "$output/pvr-export.tgz"
 }
 
 create_manifest() {
-	JSON=`jq -n \
-		--arg pr "$PROVIDER" \
-		--arg na "$NAME" \
-		--arg ve "$VERSION" \
-		--arg ma "$MANUFACTURER" \
-		--arg mo "$MODEL" \
-		--arg sh "$SHA" \
-		--arg si "$SIZE" \
-		--arg sa "$SHA64" \
-		--arg da "$DATE" \
+	json=`jq -n \
+		--arg pr "$provider" \
+		--arg na "$name" \
+		--arg ve "$version" \
+		--arg ma "$manufacturer" \
+		--arg mo "$model" \
+		--arg sh "$sha" \
+		--arg si "$size" \
+		--arg sa "$sha64" \
+		--arg da "$date" \
 		'{
 			updateId: {
 				provider: $pr,
@@ -108,16 +174,30 @@ create_manifest() {
 			createdDateTime: $da,
 			manifestVersion: "2.0"
 		}'`
-	echo $JSON > "$OUTPUT/manifest.json"
+	echo $json > "$output/manifest.json"
+	ls "$output/manifest.json"
 }
 
-print_output() {
-	ls "$OUTPUT/manifest.json"
-	ls "$OUTPUT/pvr-export.tgz"
+exec_cmd() {
+	case "$cmd" in
+		download)
+			check_args_download
+			download_image
+			;;
+		add-agent)
+			check_args_add_agent
+			add_agent
+			;;
+		export)
+			check_args_export
+			create_tarball
+			create_manifest
+			;;
+		*)
+			echo "ERROR: unknown operation"; usage; exit 1
+			;;
+	esac
 }
 
 parse_args "$@"
-check_args
-create_tarball
-create_manifest
-print_output
+exec_cmd

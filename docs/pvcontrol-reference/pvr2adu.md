@@ -1,16 +1,20 @@
 # pvr2adu
 
-The script is located in ```tools/pvr2adu``` and must be used in the same path of the [pvr checkout](https://docs.pantahub.com/make-a-new-revision.html) that we want to convert to ADU format. Some parameters must be set for the json manifest:
+The script is located in ```tools/pvr2adu```. It can be used either to install the ADU client in a [Pantavisor-enabled](https://docs.pantahub.com/index.html) device, get an image with Pantavisor and an already installed ADU client to flash a new device or convert a [pvr checkout](https://docs.pantahub.com/make-a-new-revision.html) into ADU format.
 
 ```
-$ tools/pvr2adu 
-Usage: pvr2adu [-h] -p <PROVIDER> -n <NAME> -m <MANUFACTURER> -d <MODEL> -v <VERSION> -o <OUTPUT>
-Creates ADU compatible manifest and tarball from current directory
-       options:
-              -h      show help
-              -p      provider
-              -n      name
-              -m      manufacturer
-              -v      version
-              -o      output
+Usage: pvr2adu [options] <download|add-agent|export> [arguments]
+Convert pvr checkout and images into ADU format
+options:
+       -h this help
+       -v verbose
+```
+
+To install it, just copy the file in tools/pvr2adu and place it in your $PATH:
+
+```
+mkdir -p ~/bin
+cp tools/pvr2adu ~/bin/pvr2adu
+chmod +x ~/bin/pvr2adu
+export PATH=$PATH:~/bin
 ```
