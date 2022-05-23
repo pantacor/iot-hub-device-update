@@ -92,6 +92,16 @@ get_filename_component (
     "${ADUC_DATA_FOLDER}/${ADUC_INSTALLEDCRITERIA_FILE}"
     ABSOLUTE
     "/")
+get_filename_component (
+    ADUC_PVINSTALLED_FILE_PATH
+    "${ADUC_DATA_FOLDER}/${ADUC_PVINSTALLED_FILE}"
+    ABSOLUTE
+    "/")
+get_filename_component (
+    ADUC_PVPROGRESS_FILE_PATH
+    "${ADUC_DATA_FOLDER}/${ADUC_PVPROGRESS_FILE}"
+    ABSOLUTE
+    "/")
 
 target_compile_definitions (
     ${target_name}
@@ -103,6 +113,8 @@ target_compile_definitions (
             ADUC_FILE_GROUP="${ADUC_FILE_GROUP}"
             ADUC_FILE_USER="${ADUC_FILE_USER}"
             ADUC_INSTALLEDCRITERIA_FILE_PATH="${ADUC_INSTALLEDCRITERIA_FILE_PATH}"
+            ADUC_PVINSTALLED_FILE_PATH="${ADUC_PVINSTALLED_FILE_PATH}"
+            ADUC_PVPROGRESS_FILE_PATH="${ADUC_PVPROGRESS_FILE_PATH}"
             ADUC_PLATFORM_LAYER="${ADUC_PLATFORM_LAYER}"
             ADUSHELL_FILE_PATH="${ADUSHELL_FILE_PATH}"
             DO_FILE_GROUP="${DO_FILE_GROUP}"

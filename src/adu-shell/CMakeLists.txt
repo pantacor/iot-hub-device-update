@@ -17,6 +17,8 @@ set (agent_swupdate_c_files ./src/swupdate_tasks.cpp)
 
 set (agent_script_c_files ./src/script_tasks.cpp)
 
+set (agent_pvcontrol_c_files ./src/pvcontrol_tasks.cpp)
+
 list (LENGTH ADUC_CONTENT_HANDLERS num_content_handlers)
 if (num_content_handlers EQUAL 0)
     message (FATAL_ERROR "No content handler specified.")
@@ -34,9 +36,9 @@ string (
 set (source_files ${agent_c_files})
 
 # Support all microsoft/* update types by default.
-set (source_files ${agent_c_files} ${agent_apt_c_files} ${agent_swupdate_c_files} ${agent_script_c_files})
+set (source_files ${agent_c_files} ${agent_apt_c_files} ${agent_swupdate_c_files} ${agent_script_c_files} ${agent_pvcontrol_c_files})
 
-set (adushell_def ADUSHELL_SWUPDATE="yes" ADUSHELL_APT="yes" ADUSHELL_SCRIPT="yes")
+set (adushell_def ADUSHELL_SWUPDATE="yes" ADUSHELL_APT="yes" ADUSHELL_SCRIPT="yes" ADUSHELL_PVCONTROL="yes")
 
 add_executable (${target_name} ${source_files})
 
@@ -46,6 +48,17 @@ find_package (azure_c_shared_utility REQUIRED)
 
 set_target_properties (${target_name} PROPERTIES COMPILE_DEFINITIONS _DEFAULT_SOURCE)
 
+get_filename_component (
+    ADUC_PVINSTALLED_FILE_PATH
+    "${ADUC_DATA_FOLDER}/${ADUC_PVINSTALLED_FILE}"
+    ABSOLUTE
+    "/")
+get_filename_component (
+    ADUC_PVPROGRESS_FILE_PATH
+    "${ADUC_DATA_FOLDER}/${ADUC_PVPROGRESS_FILE}"
+    ABSOLUTE
+    "/")
+
 target_compile_definitions (
     ${target_name}
     PRIVATE ADUC_VERSION="${ADUC_VERSION}"
@@ -53,6 +66,8 @@ target_compile_definitions (
             ADUC_CONF_FILE_PATH="${ADUC_CONF_FILE_PATH}"
             ADUC_CONTENT_HANDLERS="${ADUC_CONTENT_HANDLERS}"
             ADUSHELL_EFFECTIVE_GROUP_NAME="${ADUSHELL_EFFECTIVE_GROUP_NAME}"
+            ADUC_PVINSTALLED_FILE_PATH="${ADUC_PVINSTALLED_FILE_PATH}"
+            ADUC_PVPROGRESS_FILE_PATH="${ADUC_PVPROGRESS_FILE_PATH}"
             ${adushell_def})
 
 target_link_libraries (

@@ -34,7 +34,8 @@ ADUShellAction ADUShellActionFromString(const char* actionString)
             { "install", ADUShellAction::Install },
             { "reboot", ADUShellAction::Reboot },
             { "remove", ADUShellAction::Remove },
-            { "rollback", ADUShellAction::Rollback }
+            { "rollback", ADUShellAction::Rollback },
+			{ "getstatus", ADUShellAction::GetStatus }
         };
 
         // clang-format on

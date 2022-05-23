@@ -40,6 +40,11 @@ namespace ScriptTasks = Adu::Shell::Tasks::Script;
 namespace SWUpdateTasks = Adu::Shell::Tasks::SWUpdate;
 #endif
 
+#ifdef ADUSHELL_PVCONTROL
+#    include "pvcontrol_tasks.hpp"
+namespace PVControlTasks = Adu::Shell::Tasks::PVControl;
+#endif
+
 namespace adushconst = Adu::Shell::Const;
 
 /**
@@ -238,7 +243,8 @@ int ADUShell_Dowork(const ADUShell_LaunchArguments& launchArgs)
             { adushconst::update_type_common, CommonTasks::DoCommonTask },
             { adushconst::update_type_microsoft_apt, AptGetTasks::DoAptGetTask },
             { adushconst::update_type_microsoft_script, ScriptTasks::DoScriptTask },
-            { adushconst::update_type_microsoft_swupdate, SWUpdateTasks::DoSWUpdateTask }
+            { adushconst::update_type_microsoft_swupdate, SWUpdateTasks::DoSWUpdateTask },
+            { adushconst::update_type_pantacor_pvcontrol, PVControlTasks::DoPVControlTask }
         };
 
         ADUShellTaskFuncType task = actionMap.at(std::string(launchArgs.updateType));
@@ -305,6 +311,7 @@ int main(int argc, char** argv)
 {
     if (!ADUShell_PermissionCheck())
     {
+		printf("Do not have permission to run adu shell\n");
         return EPERM;
     }
 
