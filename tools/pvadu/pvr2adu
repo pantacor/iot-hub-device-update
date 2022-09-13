@@ -93,7 +93,7 @@ add_agent() {
 	fi
 	if [ -n "$verbose" ]; then echo "installing adu agent for $target"; fi
 
-	pvr app add --from "registry.gitlab.com/pantacor/pv-platforms/adu-agent:$target-pvcontainer-0-8-0-script-handler" azure-client
+	pvr app add --from "registry.gitlab.com/pantacor/pv-platforms/adu-agent:$target-pvcontainer-0-9-0-script-handler" azure-client
 } 
 
 add_config() {
